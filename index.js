@@ -8,16 +8,18 @@ const { generateJavaScript } = require('./src/generators/javascript');
  * convert the result into PHP or JavaScript.
  *
  * @param {string} input - The raw AMPScript source string.
+ * @param {object} [options] - Optional configuration.
+ * @param {boolean} [options.inferFromURLParams] - When true, bare identifiers in SET statements (e.g. `SET @Name = Name`) are treated as URL parameter lookups.
  * @returns {{ ast: object, toPHP: () => string, toJavaScript: () => string, toString: () => string }} The parsed result with conversion methods.
  */
-function parse(input) {
+function parse(input, options = {}) {
   const tokens = tokenize(input);
   const ast = parseTokens(tokens);
 
   return {
     ast,
-    toPHP: () => generatePHP(ast),
-    toJavaScript: () => generateJavaScript(ast),
+    toPHP: () => generatePHP(ast, options),
+    toJavaScript: () => generateJavaScript(ast, options),
     toString: () => input,
   };
 }

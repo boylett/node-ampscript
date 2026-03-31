@@ -7,6 +7,7 @@ const NodeType = {
   OutputBlock: 'OutputBlock',
   SetStatement: 'SetStatement',
   VarDeclaration: 'VarDeclaration',
+  VarDeclarationList: 'VarDeclarationList',
   IfStatement: 'IfStatement',
   ForLoop: 'ForLoop',
   FunctionCall: 'FunctionCall',
@@ -159,7 +160,7 @@ class Parser {
       }
 
       case TokenType.VAR: {
-        return this.parseVarDeclaration();
+        return this.parseVarDeclarations();
       }
 
       case TokenType.IF: {
@@ -195,17 +196,23 @@ class Parser {
   }
 
   /**
-   * Parses a VAR @name declaration.
+   * Parses one or more VAR declarations (e.g. VAR @a, @b, @c).
+   * Returns a VarDeclarationList node containing all declared variables.
    *
-   * @returns {{ type: string, variable: string }} The VarDeclaration node.
+   * @returns {{ type: string, variables: string[] }} The VarDeclarationList node.
    */
-  parseVarDeclaration() {
+  parseVarDeclarations() {
     this.expect(TokenType.VAR);
-    const variable = this.expect(TokenType.VARIABLE);
+    const variables = [ this.expect(TokenType.VARIABLE).value ];
+
+    while (this.peek().type === TokenType.COMMA) {
+      this.advance();
+      variables.push(this.expect(TokenType.VARIABLE).value);
+    }
 
     return {
-      type: NodeType.VarDeclaration,
-      variable: variable.value,
+      type: NodeType.VarDeclarationList,
+      variables,
     };
   }
 

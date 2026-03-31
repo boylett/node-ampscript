@@ -1,5 +1,7 @@
 const { NodeType } = require('../parser');
 
+let currentOptions = {};
+
 const FUNCTION_MAP = {
   concat: { transform: (args) => `[${ args.join(', ') }].join('')` },
   substring: { name: 'substring', method: true },
@@ -87,6 +89,10 @@ function generateExpression(node) {
  * @returns {string} The JavaScript function call source.
  */
 function generateFunctionCall(node) {
+  if (currentOptions.inferFromURLParams && node.args.length === 0 && !FUNCTION_MAP[node.name.toLowerCase()]) {
+    return "new URLSearchParams(window.location.search).get('" + node.name + "')";
+  }
+
   const nameLower = node.name.toLowerCase();
   const args = node.args.map(generateExpression);
   const mapping = FUNCTION_MAP[nameLower];
@@ -166,6 +172,10 @@ function generateStatement(node, indent) {
       return 'let ' + generateVariable(node.variable) + ';';
     }
 
+    case NodeType.VarDeclarationList: {
+      return node.variables.map((v) => 'let ' + generateVariable(v) + ';').join('\n' + '  '.repeat(indent));
+    }
+
     case NodeType.IfStatement: {
       return generateIf(node, indent);
     }
@@ -202,9 +212,11 @@ function generateStatements(statements, indent) {
  * are wrapped in an IIFE; mixed text-and-code produces a template function.
  *
  * @param {{ type: string, body: object[] }} ast - The root Program AST node.
+ * @param {object} [options] - Generator options.
  * @returns {string} The generated JavaScript source.
  */
-function generateJavaScript(ast) {
+function generateJavaScript(ast, options = {}) {
+  currentOptions = options;
   const parts = [];
 
   for (const node of ast.body) {

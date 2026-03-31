@@ -1,5 +1,7 @@
 const { NodeType } = require('../parser');
 
+let currentOptions = {};
+
 const FUNCTION_MAP = {
   concat: { name: 'implode', transform: (args) => `implode('', [${ args.join(', ') }])` },
   substring: { name: 'substr' },
@@ -88,6 +90,10 @@ function generateExpression(node) {
  * @returns {string} The PHP function call source.
  */
 function generateFunctionCall(node) {
+  if (currentOptions.inferFromURLParams && node.args.length === 0 && !FUNCTION_MAP[node.name.toLowerCase()]) {
+    return "$_GET['" + node.name + "']";
+  }
+
   const nameLower = node.name.toLowerCase();
   const args = node.args.map(generateExpression);
   const mapping = FUNCTION_MAP[nameLower];
@@ -165,6 +171,10 @@ function generateStatement(node, indent) {
       return generateVariable(node.variable) + ' = null;';
     }
 
+    case NodeType.VarDeclarationList: {
+      return node.variables.map((v) => generateVariable(v) + ' = null;').join('\n' + '  '.repeat(indent));
+    }
+
     case NodeType.IfStatement: {
       return generateIf(node, indent);
     }
@@ -200,9 +210,11 @@ function generateStatements(statements, indent) {
  * Converts a full Program AST into PHP source code.
  *
  * @param {{ type: string, body: object[] }} ast - The root Program AST node.
+ * @param {object} [options] - Generator options.
  * @returns {string} The generated PHP source.
  */
-function generatePHP(ast) {
+function generatePHP(ast, options = {}) {
+  currentOptions = options;
   const parts = [];
 
   for (const node of ast.body) {

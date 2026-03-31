@@ -75,17 +75,42 @@ Unmapped functions are passed through with their original name.
 
 ## API
 
-### `parse(input)`
+### `parse(input, options?)`
 
 Parses an AMPScript source string and returns a result object.
 
 **Parameters:**
 - `input` (string) — the raw AMPScript source
+- `options` (object, optional) — configuration options
+  - `inferFromURLParams` (boolean) — when `true`, bare identifiers in SET statements (e.g. `SET @Name = Name`) are treated as URL parameter lookups instead of function calls
 
 **Returns** an object with:
 - `ast` — the abstract syntax tree
 - `toPHP()` — generates PHP source code
 - `toJavaScript()` — generates JavaScript source code
+- `toString()` — returns the original input string
+
+### `inferFromURLParams` option
+
+In AMPScript, `SET @FirstName = FirstName` retrieves a subscriber attribute. When converting to PHP or JavaScript, there's no direct equivalent — but URL parameters are a common stand-in for testing or web contexts.
+
+```js
+const amp = parse('%%[ SET @FirstName = FirstName ]%%', {
+  inferFromURLParams: true,
+});
+
+amp.toPHP();
+// <?php
+// $FirstName = $_GET['FirstName'];
+// ?>
+
+amp.toJavaScript();
+// (() => {
+//   let FirstName = new URLSearchParams(window.location.search).get('FirstName');
+// })()
+```
+
+Without the option, bare identifiers are treated as zero-argument function calls.
 
 ## Running tests
 
