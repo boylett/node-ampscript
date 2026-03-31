@@ -1,0 +1,20 @@
+{
+  "name": "node-ampscript",
+  "version": "0.1.0",
+  "description": "Parse AMPScript and convert it to PHP, JavaScript, and more",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "ampscript",
+    "salesforce",
+    "marketing-cloud",
+    "parser",
+    "php",
+    "transpiler"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
