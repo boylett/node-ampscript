@@ -1,5 +1,6 @@
 export interface ParseOptions {
   inferFromURLParams?: boolean;
+  type?: 'block' | 'inline';
 }
 
 export interface TextNode {

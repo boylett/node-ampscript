@@ -1,6 +1,6 @@
 {
   "name": "node-ampscript",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Parse AMPScript and convert it to PHP, JavaScript, and more",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

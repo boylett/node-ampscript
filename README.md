@@ -29,11 +29,35 @@ amp.toJavaScript();
 // })()
 ```
 
+### Without delimiters
+
+You can omit the `%%[ ]%%` and `%%= =%%` wrappers. The parser auto-detects the type based on newlines:
+
+```ts
+// Single line → inline (output expression)
+parse('@name').toPHP(); // <?php echo $name; ?>
+
+// Multiline → block
+parse('SET @x = 1\nSET @y = 2').toPHP();
+// <?php
+// $x = 1;
+// $y = 2;
+// ?>
+
+// Force a specific type
+parse('SET @x = 1', { type: 'block' }).toPHP();
+// <?php
+// $x = 1;
+// ?>
+```
+
+Plain text without AMPScript patterns (e.g. HTML) is passed through unchanged unless `options.type` is set.
+
 ### Output blocks
 
 Inline output expressions are also supported:
 
-```js
+```ts
 const amp = parse('Hello %%=@name=%%, welcome!');
 
 amp.toPHP();        // Hello <?php echo $name; ?>, welcome!
@@ -83,6 +107,7 @@ Parses an AMPScript source string and returns a result object.
 **Parameters:**
 - `input` (string) — the raw AMPScript source
 - `options` (object, optional) — configuration options
+  - `type` (`'block'` | `'inline'`) — forces the parser to treat delimiter-free input as a code block or inline expression, overriding newline-based auto-detection
   - `inferFromURLParams` (boolean) — when `true`, bare identifiers in SET statements (e.g. `SET @Name = Name`) are treated as URL parameter lookups instead of function calls
 
 **Returns** an object with:

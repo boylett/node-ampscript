@@ -231,3 +231,54 @@ describe('inferFromURLParams option', () => {
     assert.ok(!php.includes('$_GET'));
   });
 });
+
+describe('auto-wrapping without delimiters', () => {
+  it('infers inline for single-line variable reference', () => {
+    const amp = parse('@name');
+
+    assert.equal(amp.toPHP(), '<?php echo $name; ?>');
+  });
+
+  it('infers block for multiline code', () => {
+    const amp = parse('SET @x = 1\nSET @y = 2');
+    const php = amp.toPHP();
+
+    assert.ok(php.includes('$x = 1;'));
+    assert.ok(php.includes('$y = 2;'));
+    assert.ok(php.startsWith('<?php\n'));
+  });
+
+  it('respects options.type = "block" override on single line', () => {
+    const amp = parse('SET @x = 1', { type: 'block' });
+    const php = amp.toPHP();
+
+    assert.ok(php.startsWith('<?php\n'));
+    assert.ok(php.includes('$x = 1;'));
+  });
+
+  it('respects options.type = "inline" override', () => {
+    const amp = parse('@name', { type: 'inline' });
+
+    assert.equal(amp.toPHP(), '<?php echo $name; ?>');
+  });
+
+  it('does not wrap plain HTML', () => {
+    const amp = parse('<h1>Hello</h1>');
+
+    assert.equal(amp.toPHP(), '<h1>Hello</h1>');
+  });
+
+  it('does not wrap when delimiters are already present', () => {
+    const amp = parse('%%[ SET @x = 1 ]%%');
+    const php = amp.toPHP();
+
+    assert.ok(php.startsWith('<?php\n'));
+    assert.ok(php.includes('$x = 1;'));
+  });
+
+  it('forces wrapping with options.type even for non-AMPScript-looking input', () => {
+    const amp = parse('Uppercase("hello")', { type: 'inline' });
+
+    assert.equal(amp.toPHP(), "<?php echo strtoupper('hello'); ?>");
+  });
+});

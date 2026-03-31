@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-03-31
+
 ### Added
 
+- Input without `%%[ ]%%` or `%%= =%%` delimiters is now auto-wrapped: single-line inputs are treated as inline (output) expressions, multiline inputs as code blocks
+- `options.type` (`'block'` | `'inline'`) to override the auto-detection
 - `inferFromURLParams` option for `parse()` — bare identifiers in SET statements become `$_GET['...']` in PHP and `new URLSearchParams(window.location.search).get('...')` in JavaScript
 - `toString()` method on the parse result, returning the original input string
 - Support for multi-variable VAR declarations (`VAR @A, @B, @C`)
@@ -29,4 +33,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plain text passthrough for input without AMPScript blocks
 - Test suite covering all major features
 
-[0.1.0]: https://github.com/node-ampscript/node-ampscript/releases/tag/v0.1.0
+[0.1.1]: https://github.com/boylett/node-ampscript/releases/tag/v0.1.1
+[0.1.0]: https://github.com/boylett/node-ampscript/releases/tag/v0.1.0
