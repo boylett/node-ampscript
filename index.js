@@ -8,7 +8,7 @@ const { generateJavaScript } = require('./src/generators/javascript');
  * convert the result into PHP or JavaScript.
  *
  * @param {string} input - The raw AMPScript source string.
- * @returns {{ ast: object, toPHP: () => string, toJavaScript: () => string }} The parsed result with conversion methods.
+ * @returns {{ ast: object, toPHP: () => string, toJavaScript: () => string, toString: () => string }} The parsed result with conversion methods.
  */
 function parse(input) {
   const tokens = tokenize(input);
@@ -18,6 +18,7 @@ function parse(input) {
     ast,
     toPHP: () => generatePHP(ast),
     toJavaScript: () => generateJavaScript(ast),
+    toString: () => input,
   };
 }
 
