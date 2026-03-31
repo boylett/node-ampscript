@@ -61,7 +61,7 @@ Inline output expressions are also supported:
 const amp = parse('Hello %%=@name=%%, welcome!');
 
 amp.toPHP();        // Hello <?php echo $name; ?>, welcome!
-amp.toJavaScript(); // (() => { let _out = ""; ... return _out; })()
+amp.toJavaScript(); // (() => `Hello ${ name }, welcome!`)()
 ```
 
 ### Plain text passthrough

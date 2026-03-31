@@ -75,10 +75,10 @@ describe('output blocks', () => {
     assert.equal(php, 'Hello <?php echo $name; ?>, welcome!');
   });
 
-  it('converts to JavaScript with template', () => {
+  it('converts to JavaScript with template literal', () => {
     const js = amp.toJavaScript();
 
-    assert.ok(js.includes('_out += name'));
+    assert.equal(js, '(() => `Hello ${ name }, welcome!`)()');
   });
 });
 

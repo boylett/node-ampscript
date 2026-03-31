@@ -253,6 +253,26 @@ export function generateJavaScript(ast: ASTNode & { type: 'Program' }, options: 
     return '(() => {\n' + code + '})()';
   }
 
+  const hasCodeBlocks = parts.some((p) => p.kind === 'code');
+
+  if (!hasCodeBlocks) {
+    let tpl = '(() => `';
+
+    for (const part of parts) {
+      if (part.kind === 'text') {
+        tpl += part.value.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+      }
+
+      else {
+        tpl += '${ ' + part.value + ' }';
+      }
+    }
+
+    tpl += '`)()';
+
+    return tpl;
+  }
+
   let out = '(() => {\n  let _out = "";\n';
 
   for (const part of parts) {
