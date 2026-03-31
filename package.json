@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Parse AMPScript and convert it to PHP, JavaScript, and more",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "src"
+  ],
   "scripts": {
     "test": "node --test"
   },
@@ -12,9 +16,22 @@
     "marketing-cloud",
     "parser",
     "php",
-    "transpiler"
+    "javascript",
+    "transpiler",
+    "ast"
   ],
-  "author": "",
+  "author": "Ryan Boylett",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boylett/node-ampscript.git"
+  },
+  "bugs": {
+    "url": "https://github.com/boylett/node-ampscript/issues"
+  },
+  "homepage": "https://github.com/boylett/node-ampscript#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
