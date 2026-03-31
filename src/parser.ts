@@ -1,6 +1,25 @@
-const { TokenType } = require('./tokenizer');
+import { Token, TokenType } from './tokenizer';
+import type {
+  ASTNode,
+  ProgramNode,
+  BlockNode,
+  OutputBlockNode,
+  SetStatementNode,
+  VarDeclarationListNode,
+  IfStatementNode,
+  ForLoopNode,
+  FunctionCallNode,
+  StringLiteralNode,
+  NumberLiteralNode,
+  BooleanLiteralNode,
+  BinaryExpressionNode,
+  LogicalExpressionNode,
+  NotExpressionNode,
+  VariableNode,
+  TextNode,
+} from './types';
 
-const NodeType = {
+export const NodeType = {
   Program: 'Program',
   TextNode: 'TextNode',
   Block: 'Block',
@@ -19,15 +38,18 @@ const NodeType = {
   LogicalExpression: 'LogicalExpression',
   NotExpression: 'NotExpression',
   Comment: 'Comment',
-};
+} as const;
 
 class Parser {
+  private tokens: Token[];
+  private pos: number;
+
   /**
    * Creates a new parser instance.
    *
-   * @param {import('./tokenizer').Token[]} tokens - The token stream to parse.
+   * @param {Token[]} tokens - The token stream to parse.
    */
-  constructor(tokens) {
+  constructor(tokens: Token[]) {
     this.tokens = tokens;
     this.pos = 0;
   }
@@ -35,18 +57,18 @@ class Parser {
   /**
    * Returns the current token without advancing.
    *
-   * @returns {import('./tokenizer').Token} The current token.
+   * @returns {Token} The current token.
    */
-  peek() {
+  private peek(): Token {
     return this.tokens[this.pos];
   }
 
   /**
    * Returns the current token and advances to the next one.
    *
-   * @returns {import('./tokenizer').Token} The consumed token.
+   * @returns {Token} The consumed token.
    */
-  advance() {
+  private advance(): Token {
     const token = this.tokens[this.pos];
     this.pos++;
 
@@ -57,9 +79,9 @@ class Parser {
    * Asserts the current token matches the expected type and consumes it.
    *
    * @param {string} type - The expected TokenType value.
-   * @returns {import('./tokenizer').Token} The consumed token.
+   * @returns {Token} The consumed token.
    */
-  expect(type) {
+  private expect(type: string): Token {
     const token = this.peek();
 
     if (token.type !== type) {
@@ -74,7 +96,7 @@ class Parser {
   /**
    * Skips over any comment tokens at the current position.
    */
-  skipComments() {
+  private skipComments(): void {
     while (this.peek().type === TokenType.COMMENT) {
       this.advance();
     }
@@ -83,16 +105,16 @@ class Parser {
   /**
    * Parses the full token stream into a Program AST node.
    *
-   * @returns {{ type: string, body: object[] }} The root AST node.
+   * @returns {ProgramNode} The root AST node.
    */
-  parse() {
-    const body = [];
+  parse(): ProgramNode {
+    const body: ASTNode[] = [];
 
     while (this.peek().type !== TokenType.EOF) {
       const token = this.peek();
 
       if (token.type === TokenType.TEXT) {
-        body.push({ type: NodeType.TextNode, value: this.advance().value });
+        body.push({ type: NodeType.TextNode, value: this.advance().value! } as TextNode);
       }
 
       else if (token.type === TokenType.BLOCK_OPEN) {
@@ -114,11 +136,11 @@ class Parser {
   /**
    * Parses a %%[ ... ]%% code block into a Block AST node.
    *
-   * @returns {{ type: string, body: object[] }} The Block node.
+   * @returns {BlockNode} The Block node.
    */
-  parseBlock() {
+  private parseBlock(): BlockNode {
     this.expect(TokenType.BLOCK_OPEN);
-    const statements = [];
+    const statements: ASTNode[] = [];
 
     this.skipComments();
 
@@ -135,9 +157,9 @@ class Parser {
   /**
    * Parses a %%= ... =%% inline output expression.
    *
-   * @returns {{ type: string, expression: object }} The OutputBlock node.
+   * @returns {OutputBlockNode} The OutputBlock node.
    */
-  parseOutputBlock() {
+  private parseOutputBlock(): OutputBlockNode {
     this.expect(TokenType.OUTPUT_OPEN);
     const expression = this.parseExpression();
     this.expect(TokenType.OUTPUT_CLOSE);
@@ -148,9 +170,9 @@ class Parser {
   /**
    * Dispatches to the appropriate statement parser based on the current token.
    *
-   * @returns {object} An AST statement node.
+   * @returns {ASTNode} An AST statement node.
    */
-  parseStatement() {
+  private parseStatement(): ASTNode {
     this.skipComments();
     const token = this.peek();
 
@@ -180,9 +202,9 @@ class Parser {
   /**
    * Parses a SET @var = expr assignment statement.
    *
-   * @returns {{ type: string, variable: string, value: object }} The SetStatement node.
+   * @returns {SetStatementNode} The SetStatement node.
    */
-  parseSetStatement() {
+  private parseSetStatement(): SetStatementNode {
     this.expect(TokenType.SET);
     const variable = this.expect(TokenType.VARIABLE);
     this.expect(TokenType.ASSIGN);
@@ -190,24 +212,23 @@ class Parser {
 
     return {
       type: NodeType.SetStatement,
-      variable: variable.value,
+      variable: variable.value!,
       value,
     };
   }
 
   /**
    * Parses one or more VAR declarations (e.g. VAR @a, @b, @c).
-   * Returns a VarDeclarationList node containing all declared variables.
    *
-   * @returns {{ type: string, variables: string[] }} The VarDeclarationList node.
+   * @returns {VarDeclarationListNode} The VarDeclarationList node.
    */
-  parseVarDeclarations() {
+  private parseVarDeclarations(): VarDeclarationListNode {
     this.expect(TokenType.VAR);
-    const variables = [ this.expect(TokenType.VARIABLE).value ];
+    const variables = [ this.expect(TokenType.VARIABLE).value! ];
 
     while (this.peek().type === TokenType.COMMA) {
       this.advance();
-      variables.push(this.expect(TokenType.VARIABLE).value);
+      variables.push(this.expect(TokenType.VARIABLE).value!);
     }
 
     return {
@@ -219,14 +240,14 @@ class Parser {
   /**
    * Parses an IF / ELSEIF / ELSE / ENDIF control flow structure.
    *
-   * @returns {{ type: string, test: object, consequent: object[], alternates: object[], elseBody: object[]|null }} The IfStatement node.
+   * @returns {IfStatementNode} The IfStatement node.
    */
-  parseIfStatement() {
+  private parseIfStatement(): IfStatementNode {
     this.expect(TokenType.IF);
     const test = this.parseExpression();
     this.expect(TokenType.THEN);
 
-    const consequent = [];
+    const consequent: ASTNode[] = [];
 
     while (
       this.peek().type !== TokenType.ELSE &&
@@ -237,13 +258,13 @@ class Parser {
       consequent.push(this.parseStatement());
     }
 
-    const alternates = [];
+    const alternates: { test: ASTNode; body: ASTNode[] }[] = [];
 
     while (this.peek().type === TokenType.ELSEIF) {
       this.advance();
       const elseIfTest = this.parseExpression();
       this.expect(TokenType.THEN);
-      const elseIfBody = [];
+      const elseIfBody: ASTNode[] = [];
 
       while (
         this.peek().type !== TokenType.ELSE &&
@@ -257,7 +278,7 @@ class Parser {
       alternates.push({ test: elseIfTest, body: elseIfBody });
     }
 
-    let elseBody = null;
+    let elseBody: ASTNode[] | null = null;
 
     if (this.peek().type === TokenType.ELSE) {
       this.advance();
@@ -282,9 +303,9 @@ class Parser {
   /**
    * Parses a FOR @i = start TO end DO ... NEXT loop.
    *
-   * @returns {{ type: string, variable: string, start: object, end: object, body: object[] }} The ForLoop node.
+   * @returns {ForLoopNode} The ForLoop node.
    */
-  parseForLoop() {
+  private parseForLoop(): ForLoopNode {
     this.expect(TokenType.FOR);
     const variable = this.expect(TokenType.VARIABLE);
     this.expect(TokenType.ASSIGN);
@@ -293,7 +314,7 @@ class Parser {
     const end = this.parseExpression();
     this.expect(TokenType.DO);
 
-    const body = [];
+    const body: ASTNode[] = [];
 
     while (this.peek().type !== TokenType.NEXT && this.peek().type !== TokenType.EOF) {
       body.push(this.parseStatement());
@@ -303,7 +324,7 @@ class Parser {
 
     return {
       type: NodeType.ForLoop,
-      variable: variable.value,
+      variable: variable.value!,
       start,
       end,
       body,
@@ -313,24 +334,24 @@ class Parser {
   /**
    * Entry point for expression parsing, starting with the lowest-precedence OR.
    *
-   * @returns {object} An expression AST node.
+   * @returns {ASTNode} An expression AST node.
    */
-  parseExpression() {
+  private parseExpression(): ASTNode {
     return this.parseOr();
   }
 
   /**
    * Parses OR logical expressions.
    *
-   * @returns {object} An expression AST node.
+   * @returns {ASTNode} An expression AST node.
    */
-  parseOr() {
+  private parseOr(): ASTNode {
     let left = this.parseAnd();
 
     while (this.peek().type === TokenType.OR) {
       this.advance();
       const right = this.parseAnd();
-      left = { type: NodeType.LogicalExpression, operator: 'OR', left, right };
+      left = { type: NodeType.LogicalExpression, operator: 'OR', left, right } as LogicalExpressionNode;
     }
 
     return left;
@@ -339,15 +360,15 @@ class Parser {
   /**
    * Parses AND logical expressions.
    *
-   * @returns {object} An expression AST node.
+   * @returns {ASTNode} An expression AST node.
    */
-  parseAnd() {
+  private parseAnd(): ASTNode {
     let left = this.parseNot();
 
     while (this.peek().type === TokenType.AND) {
       this.advance();
       const right = this.parseNot();
-      left = { type: NodeType.LogicalExpression, operator: 'AND', left, right };
+      left = { type: NodeType.LogicalExpression, operator: 'AND', left, right } as LogicalExpressionNode;
     }
 
     return left;
@@ -356,14 +377,14 @@ class Parser {
   /**
    * Parses a NOT unary prefix expression.
    *
-   * @returns {object} An expression AST node.
+   * @returns {ASTNode} An expression AST node.
    */
-  parseNot() {
+  private parseNot(): ASTNode {
     if (this.peek().type === TokenType.NOT) {
       this.advance();
       const operand = this.parseComparison();
 
-      return { type: NodeType.NotExpression, operand };
+      return { type: NodeType.NotExpression, operand } as NotExpressionNode;
     }
 
     return this.parseComparison();
@@ -372,16 +393,16 @@ class Parser {
   /**
    * Parses comparison operators (==, !=, <, >, <=, >=).
    *
-   * @returns {object} An expression AST node.
+   * @returns {ASTNode} An expression AST node.
    */
-  parseComparison() {
+  private parseComparison(): ASTNode {
     let left = this.parsePrimary();
     const opTypes = [ TokenType.EQ, TokenType.NEQ, TokenType.LT, TokenType.GT, TokenType.LTE, TokenType.GTE ];
 
-    while (opTypes.includes(this.peek().type)) {
+    while (opTypes.includes(this.peek().type as any)) {
       const op = this.advance();
       const right = this.parsePrimary();
-      left = { type: NodeType.BinaryExpression, operator: op.value, left, right };
+      left = { type: NodeType.BinaryExpression, operator: op.value!, left, right } as BinaryExpressionNode;
     }
 
     return left;
@@ -391,9 +412,9 @@ class Parser {
    * Parses primary expressions: literals, variables, function calls, and
    * parenthesized sub-expressions.
    *
-   * @returns {object} An expression AST node.
+   * @returns {ASTNode} An expression AST node.
    */
-  parsePrimary() {
+  private parsePrimary(): ASTNode {
     const token = this.peek();
 
     if (token.type === TokenType.LPAREN) {
@@ -407,25 +428,25 @@ class Parser {
     if (token.type === TokenType.STRING) {
       this.advance();
 
-      return { type: NodeType.StringLiteral, value: token.value };
+      return { type: NodeType.StringLiteral, value: token.value! } as StringLiteralNode;
     }
 
     if (token.type === TokenType.NUMBER) {
       this.advance();
 
-      return { type: NodeType.NumberLiteral, value: parseFloat(token.value) };
+      return { type: NodeType.NumberLiteral, value: parseFloat(token.value!) } as NumberLiteralNode;
     }
 
     if (token.type === TokenType.BOOLEAN) {
       this.advance();
 
-      return { type: NodeType.BooleanLiteral, value: token.value === 'true' };
+      return { type: NodeType.BooleanLiteral, value: token.value === 'true' } as BooleanLiteralNode;
     }
 
     if (token.type === TokenType.VARIABLE) {
       this.advance();
 
-      return { type: NodeType.Variable, name: token.value };
+      return { type: NodeType.Variable, name: token.value! } as VariableNode;
     }
 
     if (token.type === TokenType.IDENTIFIER) {
@@ -433,7 +454,7 @@ class Parser {
 
       if (this.peek().type === TokenType.LPAREN) {
         this.advance();
-        const args = [];
+        const args: ASTNode[] = [];
 
         while (this.peek().type !== TokenType.RPAREN && this.peek().type !== TokenType.EOF) {
           args.push(this.parseExpression());
@@ -445,10 +466,10 @@ class Parser {
 
         this.expect(TokenType.RPAREN);
 
-        return { type: NodeType.FunctionCall, name: token.value, args };
+        return { type: NodeType.FunctionCall, name: token.value!, args } as FunctionCallNode;
       }
 
-      return { type: NodeType.FunctionCall, name: token.value, args: [] };
+      return { type: NodeType.FunctionCall, name: token.value!, args: [] } as FunctionCallNode;
     }
 
     throw new SyntaxError(
@@ -460,13 +481,11 @@ class Parser {
 /**
  * Parses a token array into an AST.
  *
- * @param {import('./tokenizer').Token[]} tokens - The token stream from the tokenizer.
- * @returns {{ type: string, body: object[] }} The root Program AST node.
+ * @param {Token[]} tokens - The token stream from the tokenizer.
+ * @returns {ProgramNode} The root Program AST node.
  */
-function parse(tokens) {
+export function parse(tokens: Token[]): ProgramNode {
   const parser = new Parser(tokens);
 
   return parser.parse();
 }
-
-module.exports = { parse, NodeType };

@@ -2,13 +2,15 @@
   "name": "node-ampscript",
   "version": "0.1.0",
   "description": "Parse AMPScript and convert it to PHP, JavaScript, and more",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "index.js",
-    "src"
+    "dist"
   ],
   "scripts": {
-    "test": "node --test"
+    "build": "tsc",
+    "pretest": "npm run build",
+    "test": "node --test test/index.test.js"
   },
   "keywords": [
     "ampscript",
@@ -18,7 +20,8 @@
     "php",
     "javascript",
     "transpiler",
-    "ast"
+    "ast",
+    "typescript"
   ],
   "author": "Ryan Boylett",
   "license": "ISC",
@@ -33,5 +36,8 @@
   "homepage": "https://github.com/boylett/node-ampscript#readme",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
   }
 }

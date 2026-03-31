@@ -1,4 +1,7 @@
 .git
 .gitignore
 .DS_Store
+.claude
+src
 test
+tsconfig.json

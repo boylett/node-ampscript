@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { parse } = require('../index');
+const { parse } = require('../dist/index');
 
 describe('parse', () => {
   it('returns an object with toPHP and toJavaScript methods', () => {

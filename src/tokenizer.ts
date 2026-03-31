@@ -1,4 +1,4 @@
-const TokenType = {
+export const TokenType = {
   BLOCK_OPEN: 'BLOCK_OPEN',
   BLOCK_CLOSE: 'BLOCK_CLOSE',
   OUTPUT_OPEN: 'OUTPUT_OPEN',
@@ -39,9 +39,11 @@ const TokenType = {
   ASSIGN: 'ASSIGN',
   TEXT: 'TEXT',
   EOF: 'EOF',
-};
+} as const;
 
-const KEYWORD_MAP = {
+export type TokenTypeValue = typeof TokenType[keyof typeof TokenType];
+
+const KEYWORD_MAP: Record<string, TokenTypeValue> = {
   set: TokenType.SET,
   var: TokenType.VAR,
   if: TokenType.IF,
@@ -58,15 +60,19 @@ const KEYWORD_MAP = {
   not: TokenType.NOT,
 };
 
-class Token {
+export class Token {
+  type: TokenTypeValue;
+  value: string | null;
+  pos: number;
+
   /**
    * Creates a new token.
    *
-   * @param {string} type - One of the TokenType constants.
-   * @param {string|null} value - The raw string value of the token.
+   * @param {TokenTypeValue} type - One of the TokenType constants.
+   * @param {string | null} value - The raw string value of the token.
    * @param {number} pos - The character offset in the source input.
    */
-  constructor(type, value, pos) {
+  constructor(type: TokenTypeValue, value: string | null, pos: number) {
     this.type = type;
     this.value = value;
     this.pos = pos;
@@ -80,7 +86,7 @@ class Token {
  * @param {Token[]} tokens - The tokens collected so far.
  * @returns {boolean} True when inside an unclosed block or output expression.
  */
-function isInsideBlock(tokens) {
+function isInsideBlock(tokens: Token[]): boolean {
   for (let i = tokens.length - 1; i >= 0; i--) {
     const t = tokens[i].type;
 
@@ -102,8 +108,8 @@ function isInsideBlock(tokens) {
  * @param {string} input - The raw AMPScript source.
  * @returns {Token[]} An ordered list of tokens ending with EOF.
  */
-function tokenize(input) {
-  const tokens = [];
+export function tokenize(input: string): Token[] {
+  const tokens: Token[] = [];
   let i = 0;
 
   while (i < input.length) {
@@ -313,5 +319,3 @@ function tokenize(input) {
 
   return tokens;
 }
-
-module.exports = { tokenize, TokenType, Token };

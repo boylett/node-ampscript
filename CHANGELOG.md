@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `inferFromURLParams` option for `parse()` — bare identifiers in SET statements become `$_GET['...']` in PHP and `new URLSearchParams(window.location.search).get('...')` in JavaScript
 - `toString()` method on the parse result, returning the original input string
 - Support for multi-variable VAR declarations (`VAR @A, @B, @C`)
+- Full TypeScript rewrite with type declarations (`.d.ts`) and source maps
+- Exported types: `ParseOptions`, `ParseResult`, `ProgramNode`, `ASTNode`
 
 ## [0.1.0] - 2026-03-31
 

@@ -12,8 +12,9 @@ npm install node-ampscript
 
 ## Usage
 
-```js
-const { parse } = require('node-ampscript');
+```ts
+import { parse } from 'node-ampscript';
+// or: const { parse } = require('node-ampscript');
 
 const amp = parse('%%[ SET @greeting = "Hello World" ]%%');
 
@@ -112,10 +113,19 @@ amp.toJavaScript();
 
 Without the option, bare identifiers are treated as zero-argument function calls.
 
-## Running tests
+## TypeScript
+
+This library is written in TypeScript and ships with full type declarations. Exported types:
+
+```ts
+import type { ParseOptions, ParseResult, ProgramNode, ASTNode } from 'node-ampscript';
+```
+
+## Development
 
 ```bash
-npm test
+npm run build   # compile TypeScript to dist/
+npm test        # build + run tests
 ```
 
 ## License

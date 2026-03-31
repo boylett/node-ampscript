@@ -1,8 +1,15 @@
-const { NodeType } = require('../parser');
+import { NodeType } from '../parser';
+import type { ASTNode, ParseOptions } from '../types';
 
-let currentOptions = {};
+let currentOptions: ParseOptions = {};
 
-const FUNCTION_MAP = {
+interface FunctionMapping {
+  name?: string;
+  method?: boolean;
+  transform?: (args: string[]) => string;
+}
+
+const FUNCTION_MAP: Record<string, FunctionMapping> = {
   concat: { transform: (args) => `[${ args.join(', ') }].join('')` },
   substring: { name: 'substring', method: true },
   replace: { transform: (args) => `${ args[0] }.replace(${ args[1] }, ${ args[2] })` },
@@ -31,17 +38,17 @@ const FUNCTION_MAP = {
  * @param {string} name - The AMPScript variable name (e.g. "@foo").
  * @returns {string} The bare JavaScript identifier (e.g. "foo").
  */
-function generateVariable(name) {
+function generateVariable(name: string): string {
   return name.replace(/^@/, '');
 }
 
 /**
  * Generates a JavaScript expression string from an AST expression node.
  *
- * @param {object} node - An AST expression node.
+ * @param {ASTNode} node - An AST expression node.
  * @returns {string} The JavaScript expression source.
  */
-function generateExpression(node) {
+function generateExpression(node: ASTNode): string {
   switch (node.type) {
     case NodeType.StringLiteral: {
       return JSON.stringify(node.value);
@@ -85,10 +92,10 @@ function generateExpression(node) {
  * Generates JavaScript source for a function call, mapping known AMPScript
  * functions to idiomatic JS equivalents.
  *
- * @param {object} node - A FunctionCall AST node.
+ * @param {ASTNode} node - A FunctionCall AST node.
  * @returns {string} The JavaScript function call source.
  */
-function generateFunctionCall(node) {
+function generateFunctionCall(node: ASTNode & { type: 'FunctionCall' }): string {
   if (currentOptions.inferFromURLParams && node.args.length === 0 && !FUNCTION_MAP[node.name.toLowerCase()]) {
     return "new URLSearchParams(window.location.search).get('" + node.name + "')";
   }
@@ -113,11 +120,11 @@ function generateFunctionCall(node) {
 /**
  * Generates JavaScript source for an if/else if/else chain.
  *
- * @param {object} node - An IfStatement AST node.
+ * @param {ASTNode} node - An IfStatement AST node.
  * @param {number} indent - The current indentation depth.
  * @returns {string} The JavaScript if-block source.
  */
-function generateIf(node, indent) {
+function generateIf(node: ASTNode & { type: 'IfStatement' }, indent: number): string {
   const pad = '  '.repeat(indent);
   let out = 'if (' + generateExpression(node.test) + ') {\n';
   out += generateStatements(node.consequent, indent + 1);
@@ -141,11 +148,11 @@ function generateIf(node, indent) {
 /**
  * Generates JavaScript source for a for loop.
  *
- * @param {object} node - A ForLoop AST node.
+ * @param {ASTNode} node - A ForLoop AST node.
  * @param {number} indent - The current indentation depth.
  * @returns {string} The JavaScript for-loop source.
  */
-function generateFor(node, indent) {
+function generateFor(node: ASTNode & { type: 'ForLoop' }, indent: number): string {
   const pad = '  '.repeat(indent);
   const varName = generateVariable(node.variable);
   let out = `for (let ${ varName } = ${ generateExpression(node.start) }; ${ varName } <= ${ generateExpression(node.end) }; ${ varName }++) {\n`;
@@ -158,11 +165,11 @@ function generateFor(node, indent) {
 /**
  * Generates JavaScript source for a single statement node.
  *
- * @param {object} node - An AST statement node.
+ * @param {ASTNode} node - An AST statement node.
  * @param {number} indent - The current indentation depth.
  * @returns {string} The JavaScript statement source (without trailing newline).
  */
-function generateStatement(node, indent) {
+function generateStatement(node: ASTNode, indent: number): string {
   switch (node.type) {
     case NodeType.SetStatement: {
       return 'let ' + generateVariable(node.variable) + ' = ' + generateExpression(node.value) + ';';
@@ -173,7 +180,7 @@ function generateStatement(node, indent) {
     }
 
     case NodeType.VarDeclarationList: {
-      return node.variables.map((v) => 'let ' + generateVariable(v) + ';').join('\n' + '  '.repeat(indent));
+      return node.variables.map((v: string) => 'let ' + generateVariable(v) + ';').join('\n' + '  '.repeat(indent));
     }
 
     case NodeType.IfStatement: {
@@ -197,11 +204,11 @@ function generateStatement(node, indent) {
 /**
  * Generates JavaScript source for an array of statement nodes.
  *
- * @param {object[]} statements - The AST statement nodes.
+ * @param {ASTNode[]} statements - The AST statement nodes.
  * @param {number} indent - The current indentation depth.
  * @returns {string} The joined JavaScript statements with newlines.
  */
-function generateStatements(statements, indent) {
+function generateStatements(statements: ASTNode[], indent: number): string {
   const pad = '  '.repeat(indent);
 
   return statements.map((s) => pad + generateStatement(s, indent) + '\n').join('');
@@ -211,13 +218,13 @@ function generateStatements(statements, indent) {
  * Converts a full Program AST into JavaScript source code. Pure code blocks
  * are wrapped in an IIFE; mixed text-and-code produces a template function.
  *
- * @param {{ type: string, body: object[] }} ast - The root Program AST node.
- * @param {object} [options] - Generator options.
+ * @param {ASTNode} ast - The root Program AST node.
+ * @param {ParseOptions} options - Generator options.
  * @returns {string} The generated JavaScript source.
  */
-function generateJavaScript(ast, options = {}) {
+export function generateJavaScript(ast: ASTNode & { type: 'Program' }, options: ParseOptions = {}): string {
   currentOptions = options;
-  const parts = [];
+  const parts: { kind: string; value: string }[] = [];
 
   for (const node of ast.body) {
     if (node.type === NodeType.TextNode) {
@@ -266,5 +273,3 @@ function generateJavaScript(ast, options = {}) {
 
   return out;
 }
-
-module.exports = { generateJavaScript };

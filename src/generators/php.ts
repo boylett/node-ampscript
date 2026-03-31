@@ -1,8 +1,14 @@
-const { NodeType } = require('../parser');
+import { NodeType } from '../parser';
+import type { ASTNode, ParseOptions } from '../types';
 
-let currentOptions = {};
+let currentOptions: ParseOptions = {};
 
-const FUNCTION_MAP = {
+interface FunctionMapping {
+  name?: string;
+  transform?: (args: string[]) => string;
+}
+
+const FUNCTION_MAP: Record<string, FunctionMapping> = {
   concat: { name: 'implode', transform: (args) => `implode('', [${ args.join(', ') }])` },
   substring: { name: 'substr' },
   replace: { name: 'str_replace' },
@@ -32,17 +38,17 @@ const FUNCTION_MAP = {
  * @param {string} name - The AMPScript variable name (e.g. "@foo").
  * @returns {string} The PHP variable name (e.g. "$foo").
  */
-function generateVariable(name) {
+function generateVariable(name: string): string {
   return '$' + name.replace(/^@/, '');
 }
 
 /**
  * Generates a PHP expression string from an AST expression node.
  *
- * @param {object} node - An AST expression node.
+ * @param {ASTNode} node - An AST expression node.
  * @returns {string} The PHP expression source.
  */
-function generateExpression(node) {
+function generateExpression(node: ASTNode): string {
   switch (node.type) {
     case NodeType.StringLiteral: {
       return "'" + node.value.replace(/'/g, "\\'") + "'";
@@ -86,10 +92,10 @@ function generateExpression(node) {
  * Generates PHP source for a function call, mapping known AMPScript functions
  * to their PHP equivalents.
  *
- * @param {object} node - A FunctionCall AST node.
+ * @param {ASTNode} node - A FunctionCall AST node.
  * @returns {string} The PHP function call source.
  */
-function generateFunctionCall(node) {
+function generateFunctionCall(node: ASTNode & { type: 'FunctionCall' }): string {
   if (currentOptions.inferFromURLParams && node.args.length === 0 && !FUNCTION_MAP[node.name.toLowerCase()]) {
     return "$_GET['" + node.name + "']";
   }
@@ -112,11 +118,11 @@ function generateFunctionCall(node) {
 /**
  * Generates PHP source for an if/elseif/else chain.
  *
- * @param {object} node - An IfStatement AST node.
+ * @param {ASTNode} node - An IfStatement AST node.
  * @param {number} indent - The current indentation depth.
  * @returns {string} The PHP if-block source.
  */
-function generateIf(node, indent) {
+function generateIf(node: ASTNode & { type: 'IfStatement' }, indent: number): string {
   const pad = '  '.repeat(indent);
   let out = 'if (' + generateExpression(node.test) + ') {\n';
   out += generateStatements(node.consequent, indent + 1);
@@ -140,11 +146,11 @@ function generateIf(node, indent) {
 /**
  * Generates PHP source for a for loop.
  *
- * @param {object} node - A ForLoop AST node.
+ * @param {ASTNode} node - A ForLoop AST node.
  * @param {number} indent - The current indentation depth.
  * @returns {string} The PHP for-loop source.
  */
-function generateFor(node, indent) {
+function generateFor(node: ASTNode & { type: 'ForLoop' }, indent: number): string {
   const pad = '  '.repeat(indent);
   const varName = generateVariable(node.variable);
   let out = `for (${ varName } = ${ generateExpression(node.start) }; ${ varName } <= ${ generateExpression(node.end) }; ${ varName }++) {\n`;
@@ -157,11 +163,11 @@ function generateFor(node, indent) {
 /**
  * Generates PHP source for a single statement node.
  *
- * @param {object} node - An AST statement node.
+ * @param {ASTNode} node - An AST statement node.
  * @param {number} indent - The current indentation depth.
  * @returns {string} The PHP statement source (without trailing newline).
  */
-function generateStatement(node, indent) {
+function generateStatement(node: ASTNode, indent: number): string {
   switch (node.type) {
     case NodeType.SetStatement: {
       return generateVariable(node.variable) + ' = ' + generateExpression(node.value) + ';';
@@ -172,7 +178,7 @@ function generateStatement(node, indent) {
     }
 
     case NodeType.VarDeclarationList: {
-      return node.variables.map((v) => generateVariable(v) + ' = null;').join('\n' + '  '.repeat(indent));
+      return node.variables.map((v: string) => generateVariable(v) + ' = null;').join('\n' + '  '.repeat(indent));
     }
 
     case NodeType.IfStatement: {
@@ -196,11 +202,11 @@ function generateStatement(node, indent) {
 /**
  * Generates PHP source for an array of statement nodes.
  *
- * @param {object[]} statements - The AST statement nodes.
+ * @param {ASTNode[]} statements - The AST statement nodes.
  * @param {number} indent - The current indentation depth.
  * @returns {string} The joined PHP statements with newlines.
  */
-function generateStatements(statements, indent) {
+function generateStatements(statements: ASTNode[], indent: number): string {
   const pad = '  '.repeat(indent);
 
   return statements.map((s) => pad + generateStatement(s, indent) + '\n').join('');
@@ -209,13 +215,13 @@ function generateStatements(statements, indent) {
 /**
  * Converts a full Program AST into PHP source code.
  *
- * @param {{ type: string, body: object[] }} ast - The root Program AST node.
- * @param {object} [options] - Generator options.
+ * @param {ASTNode} ast - The root Program AST node.
+ * @param {ParseOptions} options - Generator options.
  * @returns {string} The generated PHP source.
  */
-function generatePHP(ast, options = {}) {
+export function generatePHP(ast: ASTNode & { type: 'Program' }, options: ParseOptions = {}): string {
   currentOptions = options;
-  const parts = [];
+  const parts: string[] = [];
 
   for (const node of ast.body) {
     if (node.type === NodeType.TextNode) {
@@ -233,5 +239,3 @@ function generatePHP(ast, options = {}) {
 
   return parts.join('');
 }
-
-module.exports = { generatePHP };
